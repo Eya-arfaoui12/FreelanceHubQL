@@ -1,0 +1,38 @@
+type Utilisateur {
+  id: ID!
+  nom: String!
+  email: String!
+  telephone: String
+}
+
+type Profil {
+  id: ID!
+  utilisateur: Utilisateur!
+  competences: [String!]!
+  liensProfessionnels: [String!]!
+}
+
+type Query {
+  getUtilisateur(id: ID!): Utilisateur
+  getProfil(id: ID!): Profil
+  getAllProfils(competence: String): [Profil!]!
+}
+
+type Mutation {
+  createUtilisateur(input: UtilisateurInput!): Utilisateur!
+  createProfil(input: ProfilInput!): Profil!
+  updateProfil(id: ID!, input: ProfilInput!): Profil!
+  deleteProfil(id: ID!): Boolean!
+}
+
+input UtilisateurInput {
+  nom: String!
+  email: String!
+  telephone: String
+}
+
+input ProfilInput {
+  utilisateurId: ID!
+  competences: [String!]!
+  liensProfessionnels: [String!]!
+}
