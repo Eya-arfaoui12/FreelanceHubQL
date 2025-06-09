@@ -1,38 +1,53 @@
 type Utilisateur {
-  id: ID!
-  nom: String!
-  email: String!
-  telephone: String
-}
+     id: ID!
+     nom: String!
+     email: String!
+     telephone: String
+     token: String # Retourné après authentification (optionnel)
+   }
 
-type Profil {
-  id: ID!
-  utilisateur: Utilisateur!
-  competences: [String!]!
-  liensProfessionnels: [String!]!
-}
+   type Profil {
+     id: ID!
+     utilisateur: Utilisateur!
+     competences: [String!]!
+     liensProfessionnels: [String!]!
+   }
 
-type Query {
-  getUtilisateur(id: ID!): Utilisateur
-  getProfil(id: ID!): Profil
-  getAllProfils(competence: String): [Profil!]!
-}
+   type AuthPayload {
+     token: String!
+     utilisateur: Utilisateur!
+   }
 
-type Mutation {
-  createUtilisateur(input: UtilisateurInput!): Utilisateur!
-  createProfil(input: ProfilInput!): Profil!
-  updateProfil(id: ID!, input: ProfilInput!): Profil!
-  deleteProfil(id: ID!): Boolean!
-}
+   type Query {
+     getUtilisateur(id: ID!): Utilisateur
+     getProfil(id: ID!): Profil
+     getAllProfils(competence: String): [Profil!]!
+   }
 
-input UtilisateurInput {
-  nom: String!
-  email: String!
-  telephone: String
-}
+   type Mutation {
+     createUtilisateur(input: UtilisateurInput!): Utilisateur!
+     createProfil(input: ProfilInput!): Profil!
+     updateProfil(id: ID!, input: ProfilInput!): Profil!
+     deleteProfil(id: ID!): Boolean!
+     inscrireUtilisateur(input: InscriptionInput!): AuthPayload!
+     connecterUtilisateur(email: String!, motDePasse: String!): AuthPayload!
+   }
 
-input ProfilInput {
-  utilisateurId: ID!
-  competences: [String!]!
-  liensProfessionnels: [String!]!
-}
+   input UtilisateurInput {
+     nom: String!
+     email: String!
+     telephone: String
+   }
+
+   input ProfilInput {
+     utilisateurId: ID!
+     competences: [String!]!
+     liensProfessionnels: [String!]!
+   }
+
+   input InscriptionInput {
+     nom: String!
+     email: String!
+     motDePasse: String!
+     telephone: String
+   }
