@@ -1,42 +1,56 @@
 const sqlite3 = require('sqlite3').verbose();
-   const path = require('path');
+const path = require('path');
+const fs = require('fs');
 
-   // Chemin vers le fichier de la base de données
-   const dbPath = path.join(__dirname, '../db/freelancehub.db');
+// Création du dossier db s'il n'existe pas
+const dbDir = path.join(__dirname, '../db');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
-   const db = new sqlite3.Database(dbPath);
+// Chemin vers le fichier de la base de données
+const dbPath = path.join(dbDir, 'freelancehub.db');
 
-   db.serialize(() => {
-     db.run(`
-       CREATE TABLE IF NOT EXISTS utilisateurs (
-         id INTEGER PRIMARY KEY AUTOINCREMENT,
-         nom TEXT NOT NULL,
-         email TEXT NOT NULL UNIQUE, -- Ajout de UNIQUE pour éviter les doublons d'email
-         motDePasse TEXT NOT NULL,   -- Champ pour le mot de passe haché
-         telephone TEXT
-       )
-     `);
+// Connexion à la base de données
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Erreur de connexion à SQLite :', err.message);
+  } else {
+    console.log('Connexion à la base de données SQLite réussie.');
+  }
+});
 
-     db.run(`
-       CREATE TABLE IF NOT EXISTS profils (
-         id INTEGER PRIMARY KEY AUTOINCREMENT,
-         utilisateurId INTEGER NOT NULL,
-         competences TEXT NOT NULL,
-         liensProfessionnels TEXT NOT NULL,
-         FOREIGN KEY (utilisateurId) REFERENCES utilisateurs(id)
-       )
-     `);
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS utilisateurs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nom TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      motDePasse TEXT NOT NULL,
+      telephone TEXT
+    )
+  `);
 
-     // Données initiales avec mot de passe haché (à générer avec bcrypt)
-     db.run(`
-       INSERT OR IGNORE INTO utilisateurs (nom, email, motDePasse, telephone)
-       VALUES ('Jean Dupont', 'jean.dupont@example.com', '$2b$10$XDK3u3w3v5s2x3y4z5v6w.O7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d', '0123456789')
-     `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS profils (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      utilisateurId INTEGER NOT NULL,
+      competences TEXT NOT NULL,
+      liensProfessionnels TEXT NOT NULL,
+      FOREIGN KEY (utilisateurId) REFERENCES utilisateurs(id)
+    )
+  `);
 
-     db.run(`
-       INSERT OR IGNORE INTO profils (utilisateurId, competences, liensProfessionnels)
-       VALUES (1, '["JavaScript", "Node.js"]', '["https://linkedin.com/in/jeandupont"]')
-     `);
-   });
+  // Données initiales
+  db.run(`
+    INSERT OR IGNORE INTO utilisateurs (id, nom, email, motDePasse, telephone)
+    VALUES (1, 'Jean Dupont', 'jean.dupont@example.com', '$2b$10$XDK3u3w3v5s2x3y4z5v6w.O7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d', '0123456789')
+  `);
 
-   module.exports = db;
+  db.run(`
+    INSERT OR IGNORE INTO profils (utilisateurId, competences, liensProfessionnels)
+    VALUES (1, '["JavaScript", "Node.js"]', '["https://linkedin.com/in/jeandupont"]')
+  `);
+});
+
+module.exports = db;
