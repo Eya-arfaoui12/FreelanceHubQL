@@ -88,6 +88,129 @@ const resolvers = {
       });
     }),
   },
-}
+  Mutation: {
+    createUtilisateur: (_, { input }) => {
+      return new Promise((resolve, reject) => {
+        const { nom, email, telephone, motDePasse } = input;
+        bcrypt.hash(motDePasse, 10, (err, hash) => {
+          if (err) return reject(err);
+          db.run(
+            'INSERT INTO utilisateurs (nom, email, motDePasse, telephone) VALUES (?, ?, ?, ?)',
+            [nom, email, hash, telephone],
+            function (err) {
+              if (err) return reject(new ApolloError('Email déjà utilisé', 'DUPLICATE_EMAIL'));
+              const token = jwt.sign({ userId: this.lastID }, JWT_SECRET);
+              resolve({ id: this.lastID, nom, email, telephone, token });
+            }
+          );
+        });
+      });
+    },
+    createProfil: authMiddleware((_, { input }, { userId }) => {
+      return new Promise((resolve, reject) => {
+        db.get('SELECT id, nom, email, telephone FROM utilisateurs WHERE id = ?', [userId], (err, user) => {
+          if (err) return reject(err);
+          if (!user) return reject(new ApolloError('Utilisateur non trouvé', 'NOT_FOUND'));
+
+          db.run(
+            'INSERT INTO profils (utilisateurId, competences, liensProfessionnels) VALUES (?, ?, ?)',
+            [userId, JSON.stringify(input.competences), JSON.stringify(input.liensProfessionnels)],
+            function (err) {
+              if (err) return reject(err);
+              resolve({
+                id: this.lastID,
+                utilisateurId: userId,
+                competences: input.competences,
+                liensProfessionnels: input.liensProfessionnels,
+                utilisateur: user,
+              });
+            }
+          );
+        });
+      });
+    }),
+    updateProfil: authMiddleware((_, { id, input }, { userId }) => {
+      return new Promise((resolve, reject) => {
+        db.get('SELECT * FROM profils WHERE id = ?', [id], (err, row) => {
+          if (err) return reject(err);
+          if (!row || row.utilisateurId !== userId) return reject(new ApolloError('Accès refusé', 'FORBIDDEN'));
+
+          db.run(
+            'UPDATE profils SET utilisateurId = ?, competences = ?, liensProfessionnels = ? WHERE id = ?',
+            [userId, JSON.stringify(input.competences), JSON.stringify(input.liensProfessionnels), id],
+            function (err) {
+              if (err) return reject(err);
+              db.get('SELECT id, nom, email, telephone FROM utilisateurs WHERE id = ?', [userId], (err, user) => {
+                if (err) return reject(err);
+                resolve({
+                  id,
+                  utilisateurId: userId,
+                  competences: input.competences,
+                  liensProfessionnels: input.liensProfessionnels,
+                  utilisateur: user,
+                });
+              });
+            }
+          );
+        });
+      });
+    }),
+    deleteProfil: authMiddleware((_, { id }, { userId }) => {
+      return new Promise((resolve, reject) => {
+        db.get('SELECT * FROM profils WHERE id = ?', [id], (err, row) => {
+          if (err) return reject(err);
+          if (!row || row.utilisateurId !== userId) return reject(new ApolloError('Accès refusé', 'FORBIDDEN'));
+          db.run('DELETE FROM profils WHERE id = ?', [id], function (err) {
+            if (err) return reject(err);
+            if (this.changes === 0) return reject(new ApolloError('Profil non trouvé', 'NOT_FOUND'));
+            resolve(true);
+          });
+        });
+      });
+    }),
+    inscrireUtilisateur: (_, { input }) => {
+      return new Promise((resolve, reject) => {
+        const { nom, email, motDePasse, telephone } = input;
+        bcrypt.hash(motDePasse, 10, (err, hash) => {
+          if (err) return reject(err);
+          db.run(
+            'INSERT INTO utilisateurs (nom, email, motDePasse, telephone) VALUES (?, ?, ?, ?)',
+            [nom, email, hash, telephone],
+            function (err) {
+              if (err) return reject(new ApolloError('Email déjà utilisé', 'DUPLICATE_EMAIL'));
+              const token = jwt.sign({ userId: this.lastID }, JWT_SECRET);
+              db.get('SELECT id, nom, email, telephone FROM utilisateurs WHERE id = ?', [this.lastID], (err, row) => {
+                if (err) return reject(err);
+                resolve({ token, utilisateur: row });
+              });
+            }
+          );
+        });
+      });
+    },
+    connecterUtilisateur: (_, { email, motDePasse }) => {
+      return new Promise((resolve, reject) => {
+        db.get('SELECT * FROM utilisateurs WHERE email = ?', [email], (err, row) => {
+          if (err) return reject(err);
+          if (!row) return reject(new ApolloError('Email ou mot de passe incorrect', 'INVALID_CREDENTIALS'));
+
+          bcrypt.compare(motDePasse, row.motDePasse, (err, match) => {
+            if (err || !match) return reject(new ApolloError('Email ou mot de passe incorrect', 'INVALID_CREDENTIALS'));
+            const token = jwt.sign({ userId: row.id }, JWT_SECRET);
+            resolve({
+              token,
+              utilisateur: {
+                id: row.id,
+                nom: row.nom,
+                email: row.email,
+                telephone: row.telephone,
+              },
+            });
+          });
+        });
+      });
+    },
+  },
+};
 
 module.exports = resolvers;
