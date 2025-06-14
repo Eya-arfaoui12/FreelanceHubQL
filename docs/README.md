@@ -1,5 +1,5 @@
-# **Freelance Profile Platform**
-This project implements a profile management platform for freelancers using a GraphQL web service. It allows users to create, view, update, and delete profiles containing personal information, skills, and professional links.
+# **Freelance Profile API**
+This project implements a profile management API for freelancers using a GraphQL web service. It allows users to create, view, update, and delete profiles containing personal information, skills, and professional links.
 
 # **Setup**
 
